@@ -24,7 +24,7 @@ LETTER = (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X
 
 NUMBER = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 
-STRING = {LETTER | " "}
+STRING = '"', {LETTER | " "}, '"'
 
 IDENTIFIER = LETTER, {LETTER | NUMBER | "_"}
 
@@ -43,13 +43,13 @@ CHARACTER = "CREATE", "character", STRING, "{",
                 "}", 
             "}"
 
-SPELL = "SPELL", STRING, "{",
+SPELL = "CREATE" "spell", STRING, "{",
             "power", "=", NUMBER, ";",
             "mana_cost", "=", NUMBER, ";",
             "effect", "=", STRING, ";",
         "}"
 
-MISSION = "MISSION", STRING, "{",
+MISSION = "CREATE" "mission", STRING, "{",
                "objective", "=", STRING, ";",
                "participants", "=", LIST, ";",
                "reward", "=", LIST, ";",
