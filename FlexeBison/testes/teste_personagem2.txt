@@ -1,0 +1,8 @@
+CREATE character "Vin" {
+    attributes = {
+        strength = 10;
+        magic = 8;
+        mana = 50;
+        inventory = [dagger, cloak, coins];
+    }
+}

@@ -59,7 +59,10 @@ extern int yydebug;
     CREATE = 260,                  /* CREATE  */
     CHARACTER = 261,               /* CHARACTER  */
     ATTRIBUTES = 262,              /* ATTRIBUTES  */
-    MANA = 263                     /* MANA  */
+    STRENGTH = 263,                /* STRENGTH  */
+    MAGIC = 264,                   /* MAGIC  */
+    MANA = 265,                    /* MANA  */
+    INVENTORY = 266                /* INVENTORY  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -73,7 +76,7 @@ union YYSTYPE
     int num;
     char* str;
 
-#line 77 "parser.tab.h"
+#line 80 "parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

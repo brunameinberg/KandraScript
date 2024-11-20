@@ -14,7 +14,7 @@ int yylex();
 
 %token <str> IDENTIFIER
 %token <num> NUMBER
-%token CREATE CHARACTER ATTRIBUTES MANA
+%token CREATE CHARACTER ATTRIBUTES STRENGTH MAGIC MANA INVENTORY
 
 %%
 
@@ -30,11 +30,29 @@ character_def:
 ;
 
 attributes:
-    ATTRIBUTES '=' '{' MANA '=' NUMBER ';' '}' 
+    ATTRIBUTES '=' '{' STRENGTH '=' NUMBER ';'
+    MAGIC '=' NUMBER ';'
+    MANA '=' NUMBER ';'
+    INVENTORY '=' list ';' '}' 
     {
-        printf("Atributos: Mana = %d\n", $6);
-        printf("Atributos processados com sucesso.\n");
+        printf("Atributos do personagem:\n");
+        printf("  Força: %d\n", $6);
+        printf("  Magia: %d\n", $10);
+        printf("  Mana: %d\n", $14);
+        printf("  Inventário: Lista definida.\n");
     }
+;
+
+list:
+    '[' items ']' 
+    {
+        printf("Lista de itens criada.\n");
+    }
+;
+
+items:
+    IDENTIFIER
+    | IDENTIFIER ',' items
 ;
 
 %%

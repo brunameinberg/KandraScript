@@ -1,0 +1,8 @@
+CREATE character "Kelsier" {
+    attributes = {
+        strength = 20;
+        magic = 12;
+        mana = 70;
+        inventory = [dagger, cloak, coins];
+    }
+}
