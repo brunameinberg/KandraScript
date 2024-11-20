@@ -14,18 +14,19 @@ int yylex();
 
 %token <str> IDENTIFIER
 %token <num> NUMBER
-%token CREATE CHARACTER ATTRIBUTES STRENGTH MAGIC MANA INVENTORY
+%token CREATE CHARACTER ATTRIBUTES SPELL STRENGTH MAGIC MANA INVENTORY POWER MANA_COST EFFECT
 
 %%
 
 program:
     character_def { printf("Personagem criado com sucesso!\n"); }
+    | spell_def { printf("Feitiço criado com sucesso!\n");}
 ;
 
 character_def:
-    CREATE CHARACTER '"' IDENTIFIER '"' '{' attributes '}' 
+    CREATE CHARACTER IDENTIFIER '{' attributes '}' 
     {
-        printf("Personagem: %s\n", $4);
+        printf("Personagem: %s\n", $3);
     }
 ;
 
@@ -40,6 +41,25 @@ attributes:
         printf("  Magia: %d\n", $10);
         printf("  Mana: %d\n", $14);
         printf("  Inventário: Lista definida.\n");
+    }
+;
+
+spell_def:
+    SPELL IDENTIFIER '{' spell_attributes '}' 
+    {
+        printf("Feitiço: %s\n", $2);
+    }
+;
+
+spell_attributes:
+    POWER '=' NUMBER ';'
+    MANA_COST '=' NUMBER ';'
+    EFFECT '=' IDENTIFIER ';' 
+    {
+        printf("Atributos do feitiço:\n");
+        printf("  Poder: %d\n", $3);
+        printf("  Custo de Mana: %d\n", $7);
+        printf("  Efeito: %s\n", $11);
     }
 ;
 

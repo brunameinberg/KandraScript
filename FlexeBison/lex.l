@@ -12,7 +12,11 @@
 "magic"           { printf("Token: MAGIC\n"); return MAGIC; }
 "mana"            { printf("Token: MANA\n"); return MANA; }
 "inventory"       { printf("Token: INVENTORY\n"); return INVENTORY; }
-"\""              { printf("Token: \"\n"); return '"'; }
+"SPELL"           { printf("Token: SPELL\n"); return SPELL; }
+"power"           { printf("Token: POWER\n"); return POWER; }
+"mana_cost"       { printf("Token: MANA_COST\n"); return MANA_COST; }
+"effect"          { printf("Token: EFFECT\n"); return EFFECT; }
+\"[^\"]*\"        { yylval.str = strdup(yytext + 1); yylval.str[strlen(yylval.str) - 1] = '\0'; printf("Token: IDENTIFIER (string: %s)\n", yylval.str); return IDENTIFIER; }
 "{"               { printf("Token: {\n"); return '{'; }
 "}"               { printf("Token: }\n"); return '}'; }
 "="               { printf("Token: =\n"); return '='; }
