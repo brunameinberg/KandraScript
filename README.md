@@ -3,7 +3,7 @@ Repositório criado para a realização da APS de Lógica Computacional
 
 ## Sobre o Projeto
 
-###Tarefas:
+### Tarefas:
 1. Estruturar a linguagem segundo o padrão EBNF.
 2. Utilizar as ferramentas Flex e Bison para realizar as etapas de Análise Léxica e Sintática. A saída
 deve ser um arquivo C ou CPP compilado pelo Flex/Bison.
