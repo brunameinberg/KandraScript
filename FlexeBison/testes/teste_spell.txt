@@ -1,4 +1,4 @@
-SPELL "Fireball" {
+CREATE spell "Fireball" {
     power = 50;
     mana_cost = 20;
     effect = "Burns enemies";

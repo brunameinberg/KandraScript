@@ -12,7 +12,7 @@
 "magic"           { printf("Token: MAGIC\n"); return MAGIC; }
 "mana"            { printf("Token: MANA\n"); return MANA; }
 "inventory"       { printf("Token: INVENTORY\n"); return INVENTORY; }
-"SPELL"           { printf("Token: SPELL\n"); return SPELL; }
+"spell"           { printf("Token: SPELL\n"); return SPELL; }
 "power"           { printf("Token: POWER\n"); return POWER; }
 "mana_cost"       { printf("Token: MANA_COST\n"); return MANA_COST; }
 "effect"          { printf("Token: EFFECT\n"); return EFFECT; }

@@ -19,8 +19,13 @@ int yylex();
 %%
 
 program:
+    program_element program  
+    |
+;
+
+program_element:
     character_def { printf("Personagem criado com sucesso!\n"); }
-    | spell_def { printf("Feitiço criado com sucesso!\n");}
+    | spell_def { printf("Feitiço criado com sucesso!\n"); }
 ;
 
 character_def:
@@ -45,9 +50,9 @@ attributes:
 ;
 
 spell_def:
-    SPELL IDENTIFIER '{' spell_attributes '}' 
+    CREATE SPELL IDENTIFIER '{' spell_attributes '}' 
     {
-        printf("Feitiço: %s\n", $2);
+        printf("Feitiço: %s\n", $3);
     }
 ;
 
