@@ -1,0 +1,5 @@
+CREATE character "Kelsier" {
+    attributes = {
+        mana = 50;
+    }
+}
