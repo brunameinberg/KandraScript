@@ -1,0 +1,28 @@
+CREATE character "Hero" {
+    attributes = {
+        strength = 15;
+        mana = 50;
+        life = 100;
+    }
+}
+
+CREATE character "Mage" {
+    attributes = {
+        strength = 7;
+        mana = 100;
+        life = 100;
+    }
+}
+
+CREATE spell "Fireball" {
+    power = 50;
+    mana_cost = 30;
+    effect = "Explosive damage";
+}
+
+CAST spell "Fireball" BY "Mage" ON "Hero";
+
+WHILE_THE_MOON_SHINES (Hero.life > 0 && Mage.life > 0) {
+    CAST spell "Fireball" BY "Mage" ON "Hero";
+    CAST spell "Fireball" BY "Hero" ON "Mage";
+}

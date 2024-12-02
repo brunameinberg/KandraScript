@@ -310,6 +310,13 @@ class Tokenizer:
             self.position += 1
             
         #operadores lógicos
+        elif self.source[self.position:self.position + 2] == '&&':
+                    self.next = Token('AND', None)
+                    self.position += 2
+
+        elif self.source[self.position:self.position + 2] == '||':
+                    self.next = Token('OR', None)
+                    self.position += 2
 
         elif self.source[self.position:self.position + 2] == '!=':
             self.next = Token('NOT_EQUALS', None)
@@ -446,7 +453,6 @@ class While(Node):
         self.children.extend([cond, block])
 
     def Evaluate(self, symbol_table: SymbolTable):
-        print("DEBUG While: Iniciando avaliação do loop")
 
         cond_value, cond_type = self.children[0].Evaluate(symbol_table)
 
@@ -466,6 +472,7 @@ class RelationOp(Node):
     def Evaluate(self, symbol_table: SymbolTable) -> any:
         valor_esquerdo, tipo_esquerdo = self.children[0].Evaluate(symbol_table)
         valor_direito, tipo_direito = self.children[1].Evaluate(symbol_table)
+
 
         if tipo_esquerdo != tipo_direito:
             raise Exception("Para operações relacionais os tipos devem ser iguais!")
@@ -707,7 +714,8 @@ class CastSpellNode(Node):
         # Aplica o efeito no alvo (apenas exibe uma mensagem por enquanto)
         print(f"{self.caster} lançou '{self.spell_name}' em {self.target}!")
         print(f"Efeito: {spell['effect']}")
-        print(f"{self.target} sofreu {spell['power']} de dano!")
+        target['life'] -= int(spell['power'] * caster['strength']*0.1)
+        print(f"{self.target} sofreu {spell['power'] * caster['strength']*0.1} de dano e agora tem {target['life']} de vida!!")
         
         # Atualiza a tabela de símbolos
         symbol_table.set(self.caster, caster, 'CHARACTER')
@@ -1079,7 +1087,6 @@ class Parser:
                                         tokenizer.selectNext()
                                     elif tokenizer.next.type == 'OPEN_BRACKET':  # Lista
                                         attributes[attr_name] = Parser.parseFactor(tokenizer).Evaluate(SymbolTable())[0]
-
                                     else:
                                         raise Exception("Esperado um valor inteiro ou lista para o atributo")
                                     if tokenizer.next.type == 'SEMICOLON':  # Finaliza o atributo
