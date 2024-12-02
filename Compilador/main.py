@@ -448,21 +448,12 @@ class While(Node):
     def Evaluate(self, symbol_table: SymbolTable):
         print("DEBUG While: Iniciando avaliação do loop")
 
-        while True:
+        cond_value, cond_type = self.children[0].Evaluate(symbol_table)
+
+        while cond_value:
+            self.children[1].Evaluate(symbol_table)
             cond_value, cond_type = self.children[0].Evaluate(symbol_table)
 
-            # Certifique-se de que a condição seja um valor booleano
-            if cond_type != 'int':
-                raise Exception(f"Erro: Condição do while deve ser um inteiro, mas recebeu '{cond_type}'")
-            
-            if cond_value == 0:  # Condição falsa
-                print("DEBUG While: Condição avaliada como falsa. Encerrando loop.")
-                break
-            
-            print(f"DEBUG While: Condição avaliada como {cond_value} ({cond_type}). Executando bloco.")
-            self.children[1].Evaluate(symbol_table)
-
-        print("DEBUG While: Loop terminado")
         return None, None
 
     
@@ -956,11 +947,10 @@ class Parser:
                 if tokenizer.next.type == 'CLPAR':  # Verifica ')'
                     tokenizer.selectNext()  # Consome ')'
                     if tokenizer.next.type == 'OPBRACE':  # Verifica '{'
-                        tokenizer.selectNext()  # Consome '{'
                         block = Parser.parseBlock(tokenizer)  # Processa o bloco do loop
-                        return While(condition, block)
                     else:
-                        raise Exception("Esperado '{' após ')' em WHILE_THE_MOON_SHINES")
+                        block = Parser.parseStatement(tokenizer)
+                    return While(condition, block)
                 else:
                     raise Exception("Esperado ')' após a condição em WHILE_THE_MOON_SHINES")
             else:
