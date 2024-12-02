@@ -1,0 +1,10 @@
+CREATE character "Hero" {
+    attributes = {
+        strength = 15;
+        mana = 50;
+    }
+}
+WHILE_THE_MOON_SHINES (Hero.strength > 10) {
+    LOG("Hero is still strong!");
+    Hero.strength = Hero.strength - 1;
+}

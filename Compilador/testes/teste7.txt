@@ -1,0 +1,13 @@
+CREATE character "Hero" {
+    attributes = {
+        strength = 10;
+        mana = 50;
+    }
+}
+
+ENCHANTED_IF (Hero.strength > 5) {
+    LOG("Hero is strong!");
+}
+OTHER_PATH{
+    LOG("Hero is weak!");
+}

@@ -1,0 +1,8 @@
+CREATE character "Hero" {
+    attributes = {
+        strength = 10;
+        magic = 15;
+        mana = 100;
+        inventory = ["sword", "shield"];
+    }
+}

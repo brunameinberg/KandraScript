@@ -77,3 +77,54 @@ BLOCK = "{", {STATEMENT}, "}"
 STATEMENT = CHARACTER | SPELL | MISSION | CAST | CONDITIONAL | LOOP | ASSIGNMENT
 
 ASSIGNMENT = IDENTIFIER, ".", IDENTIFIER, "=", VALUE, ";"
+
+<div>
+LETTER = (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z)
+
+NUMBER = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+STRING = '"', {LETTER | " "}, '"'
+
+IDENTIFIER = LETTER, {LETTER | NUMBER | "_"}
+
+VALUE = STRING | NUMBER | LIST | SPELL | CHARACTER
+
+LIST = "[", VALUE, {",", VALUE}, "]"
+
+COMMENT = "//", {LETTER | NUMBER | " "}, "\n"
+
+CHARACTER = "CREATE", "character", STRING, "{", "attributes", "=", "{", "strength", "=", NUMBER, ";", "magic", "=", NUMBER, ";", "mana", "=", NUMBER, ";", "inventory", "=", LIST, ";", "}", "}"
+
+SPELL = "CREATE", "spell", STRING, "{", "power", "=", NUMBER, ";", "mana_cost", "=", NUMBER, ";", "effect", "=", STRING, ";", "}"
+
+MISSION = "CREATE", "mission", STRING, "{", "objective", "=", STRING, ";", "participants", "=", LIST, ";", "reward", "=", LIST, ";", "location", "=", STRING, ";", "}"
+
+CAST = "CAST", "SPELL", STRING, "BY", STRING, "ON", STRING, ";"
+
+CONDITIONAL = "ENCHANTED_IF", CONDITION_BLOCK, "OTHER_PATH", BLOCK
+
+CONDITION_BLOCK = CONDITION, BLOCK
+
+CONDITION = EXPRESSION, ("<" | ">" | "=" | "!="), EXPRESSION
+
+LOOP = "WHILE_THE_MOON_SHINES", CONDITION_BLOCK, BLOCK | "UNTIL_THE_FINAL_BATTLE", IDENTIFIER, "from", NUMBER, "to", NUMBER, BLOCK
+
+BLOCK = "{", {STATEMENT}, "}"
+
+STATEMENT = CHARACTER | SPELL | MISSION | CAST | CONDITIONAL | LOOP | ASSIGNMENT | EXPRESSION | CREATE_DYNAMIC | ITERATE_LIST | ADVANCE_MISSION
+
+ASSIGNMENT = IDENTIFIER, ".", IDENTIFIER, "=", EXPRESSION, ";"
+
+EXPRESSION = TERM, {("+" | "-"), TERM}
+
+TERM = FACTOR, {("*" | "/"), FACTOR}
+
+FACTOR = NUMBER | IDENTIFIER | IDENTIFIER, ".", IDENTIFIER | "(", EXPRESSION, ")"
+
+CREATE_DYNAMIC = "CREATE", ("character" | "spell"), STRING, "{", BLOCK, "}"
+
+ITERATE_LIST = IDENTIFIER, "IN", LIST, BLOCK
+
+ADVANCE_MISSION = "MISSION_STEP", STRING, "TO", STRING, ";"
+
+</div>

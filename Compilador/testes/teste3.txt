@@ -1,0 +1,6 @@
+CREATE mission "SaveTheKingdom" {
+    objective = "Defeat the evil dragon";
+    participants = ["Warrior", "Mage", "Healer"];
+    reward = ["Gold", "Fame", "Artifacts"];
+    location = "Dragon's Lair";
+}

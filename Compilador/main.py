@@ -51,18 +51,70 @@ class SymbolTable:
         self.symbols = {}
 
     def get(self, name: str):
-        if name in self.symbols:
-            return self.symbols[name]
-        else:
-            raise KeyError(f"Variável '{name}' não encontrada")
-    
-    def assign (self, name, value, var_type):
-        if self.symbols[name][1] != var_type:
-            raise Exception(f"O tipo da variável declarado {self.symbols[name][1]} não é o mesmo tipo do valor a ser atribuido {var_type}")
-        self.symbols[name][0] = value
+        if '.' in name:  # Identificador composto, como Hero.strength
+            parts = name.split('.')
+            current = self.symbols.get(parts[0])
+            if current is None:
+                raise KeyError(f"Identificador '{parts[0]}' não encontrado.")
+            value, value_type = current
+            if not isinstance(value, dict):
+                raise KeyError(f"Identificador '{parts[0]}' não contém atributos.")
+            
+            for part in parts[1:]:
+                if part in value:
+                    value = value[part]
+                else:
+                    raise KeyError(f"Atributo '{part}' não encontrado em '{parts[0]}'.")
+            
+            return value, type(value).__name__.lower()
+        else:  # Identificador simples
+            if name in self.symbols:
+                return self.symbols[name][0], self.symbols[name][1]
+            else:
+                raise KeyError(f"Identificador '{name}' não encontrado.")
 
-    def set(self, name, value, type):
-        self.symbols[name] = [value, type]
+    def assign(self, name, value, var_type):
+        if '.' in name:
+            parts = name.split('.')
+            current = self.symbols.get(parts[0])
+            if current is None:
+                raise KeyError(f"Identificador '{parts[0]}' não encontrado.")
+
+            obj, obj_type = current
+            if not isinstance(obj, dict):
+                raise KeyError(f"'{parts[0]}' não é um objeto válido para atribuição.")
+
+            # Navegar até o atributo final
+            for part in parts[1:-1]:
+                if part not in obj:
+                    raise KeyError(f"Atributo '{part}' não encontrado.")
+                obj = obj[part]
+
+            final_attr = parts[-1]
+            if final_attr not in obj:
+                raise KeyError(f"Atributo '{final_attr}' não encontrado.")
+            
+            # Verificar o tipo e atualizar o valor
+            if isinstance(obj[final_attr], int) and var_type != "int":
+                raise TypeError(f"Tipo incompatível para '{final_attr}'. Esperado 'int'.")
+            print(f"DEBUG assign: Atualizando '{name}' para {value} (tipo: {var_type})")
+            obj[final_attr] = value
+
+        else:
+            # Identificadores simples
+            if name not in self.symbols:
+                raise KeyError(f"Variável '{name}' não declarada.")
+            if self.symbols[name][1] != var_type:
+                raise TypeError(f"Tipo incompatível para variável '{name}'.")
+            print(f"DEBUG assign: Atualizando '{name}' para {value} (tipo: {var_type})")
+            self.symbols[name][0] = value
+
+
+
+
+    def set(self, name, value, value_type):
+        self.symbols[name] = [value, value_type]
+
 
 
 class FuncTable:
@@ -125,101 +177,65 @@ class Tokenizer:
             self.position += 1  # Avança para o próximo caractere após a segunda aspas
             self.next = Token('STRING', valor)
         
-        #palavras reservadas
-        elif self.source[self.position:self.position + 6] == "printf":
-            self.next = Token('PRINTF', None)
-            self.position += 6
-
-        elif self.source[self.position:self.position + 2] == "if":
-            self.next = Token('IF', None)
-            self.position += 2
-
-        elif self.source[self.position:self.position + 4] == "else":
-            self.next = Token('ELSE', None)
-            self.position += 4
-
-        elif self.source[self.position:self.position + 5] == "while":
-            self.next = Token('WHILE', None)
-            self.position += 5
-
-        elif self.source[self.position:self.position + 5] == "scanf":
-            self.next = Token('SCANF', None)
-            self.position += 5
-
-        elif self.source[self.position:self.position + 3] == "int":
-            self.next = Token('INTEIRO', None)
-            self.position += 3
-        
-        elif self.source[self.position:self.position + 3] == "str":
-            self.next = Token('STR', None)
-            self.position += 3
-
-        elif self.source[self.position:self.position + 6] == "return":
-            self.next = Token('RETURN', None)
-            self.position += 6
-        
-        elif self.source[self.position:self.position + 4] == "void":
-            self.next = Token('VOID', None)
-            self.position += 4
 
         elif self.source[self.position:self.position + 9] == "character":
-            self.next = Token('PERSONAGEM', None)
+            self.next = Token('CHARACTER', None)
             self.position += 9
         
         elif self.source[self.position:self.position + 10] == "attributes":
-            self.next = Token('ATRIBUTOS', None)
+            self.next = Token('ATTRIBUTES', None)
             self.position += 10
 
         elif self.source[self.position:self.position + 8] == "strength":
-            self.next = Token('FORÇA', None)
+            self.next = Token('IDENT', "strength")
             self.position += 8
 
         elif self.source[self.position:self.position + 5] == "magic":
-            self.next = Token('MAGIA', None)
-            self.position += 5
-
-        elif self.source[self.position:self.position + 4] == "mana":
-            self.next = Token('MANA', None)
-            self.position += 4
-
-        elif self.source[self.position:self.position + 9] == "inventory":
-            self.next = Token('INVENTARIO', None)
-            self.position += 9      
-
-        elif self.source[self.position:self.position + 5] == "spell":
-            self.next = Token('FEITICO', None)
-            self.position += 5
-
-        elif self.source[self.position:self.position + 5] == "power":
-            self.next = Token('PODER', None)
+            self.next = Token('IDENT', "magic")
             self.position += 5
 
         elif self.source[self.position:self.position + 9] == "mana_cost":
-            self.next = Token('CUSTO_MANA', None)
+            self.next = Token('IDENT', "mana_cost")
             self.position += 9
 
+        elif self.source[self.position:self.position + 4] == "mana":
+            self.next = Token('IDENT', "mana")
+            self.position += 4
+
+        elif self.source[self.position:self.position + 9] == "inventory":
+            self.next = Token('IDENT', "inventory")
+            self.position += 9      
+
+        elif self.source[self.position:self.position + 5] == "spell":
+            self.next = Token('SPELL', None)
+            self.position += 5
+
+        elif self.source[self.position:self.position + 5] == "power":
+            self.next = Token('IDENT', "power")
+            self.position += 5
+
         elif self.source[self.position:self.position + 6] == "effect":
-            self.next = Token('EFEITO', None)
+            self.next = Token('IDENT', "effect")
             self.position += 6
 
         elif self.source[self.position:self.position + 7] == "mission":
-            self.next = Token('MISSAO', None)
+            self.next = Token('MISSION', None)
             self.position += 7
 
         elif self.source[self.position:self.position + 9] == "objective":
-            self.next = Token('OBJETIVO', None)
+            self.next = Token('OBJECTIVE', None)
             self.position += 9
 
         elif self.source[self.position:self.position + 12] == "participants":
-            self.next = Token('PARTICIPANTES', None)
+            self.next = Token('PARTICIPANTS', None)
             self.position += 12
 
         elif self.source[self.position:self.position + 6] == "reward":
-            self.next = Token('RECOMPENSA', None)
+            self.next = Token('REWARD', None)
             self.position += 6
 
         elif self.source[self.position:self.position + 8] == "location":
-            self.next = Token('LOCALIZACAO', None)
+            self.next = Token('LOCATION', None)
             self.position += 8
 
         elif self.source[self.position:self.position + 6] == "CREATE":
@@ -230,30 +246,78 @@ class Tokenizer:
             self.next = Token('CAST', None)
             self.position += 4
 
-        elif self.source[self.position:self.position + 13] == "ENCHANTED_IF":
+        elif self.source[self.position:self.position + 12] == "ENCHANTED_IF":
             self.next = Token('ENCHANTED_IF', None)
-            self.position += 13
+            self.position += 12
 
-        elif self.source[self.position:self.position + 19] == "WHILE_THE_MOON_SHINES":
+        elif self.source[self.position:self.position + 21] == "WHILE_THE_MOON_SHINES":
             self.next = Token('WHILE_THE_MOON_SHINES', None)
-            self.position += 19
+            self.position += 21
 
         elif self.source[self.position:self.position + 22] == "UNTIL_THE_FINAL_BATTLE":
             self.next = Token('UNTIL_THE_FINAL_BATTLE', None)
             self.position += 22
+        
+        elif self.source[self.position:self.position + 10] == "OTHER_PATH":
+            self.next = Token('OTHER_PATH', None)
+            self.position += 10
+        
+        elif self.source[self.position:self.position + 14] == "CREATE_DYNAMIC":
+            self.next = Token('CREATE_DYNAMIC', None)
+            self.position += 14
+
+        elif self.source[self.position:self.position + 10] == "ITERATE_LIST":
+            self.next = Token('ITERATE_LIST', None)
+            self.position += 10
+
+        elif self.source[self.position:self.position + 13] == "ADVANCE_MISSION":
+            self.next = Token('ADVANCE_MISSION', None)
+            self.position += 13
+
+        elif self.source[self.position:self.position + 12] == "MISSION_STEP":
+            self.next = Token('MISSION_STEP', None)
+            self.position += 12
+        
+        elif self.source[self.position:self.position + 2] == "IN":
+            self.next = Token('IN', None)
+            self.position += 2
+        
+        elif self.source[self.position] == ".":
+            self.next = Token('DOT', None)
+            self.position += 1
+
+        elif self.source[self.position:self.position + 2] == "BY":
+            self.next = Token('BY', None)
+            self.position += 2
+        
+        elif self.source[self.position:self.position + 2] == "ON":
+            self.next = Token('ON', None)
+            self.position += 2
+
+        elif self.source[self.position:self.position + 3] == "LOG":
+            self.next = Token('LOG', None)
+            self.position += 3
+
+            print(f"Tokenizer: token identificado -> {self.next.type}, valor -> {self.next.value}")
+
+        #tratando lista
+        elif self.source[self.position] == "[":
+            self.next = Token('OPEN_BRACKET', None)
+            self.position += 1
+
+        elif self.source[self.position] == "]":
+            self.next = Token('CLOSE_BRACKET', None)
+            self.position += 1
             
         #operadores lógicos
-        elif self.source[self.position:self.position + 2] == '&&':
-                    self.next = Token('AND', None)
-                    self.position += 2
 
-        elif self.source[self.position:self.position + 2] == '||':
-                    self.next = Token('OR', None)
-                    self.position += 2
+        elif self.source[self.position:self.position + 2] == '!=':
+            self.next = Token('NOT_EQUALS', None)
+            self.position += 2
 
         elif self.source[self.position:self.position + 2] == '==':
-                    self.next = Token('EQUALS', None)
-                    self.position += 2
+            self.next = Token('EQUALS', None)
+            self.position += 2
 
         elif self.source[self.position] == ">":
             self.next = Token('GREATER', None)
@@ -324,6 +388,10 @@ class Tokenizer:
         
         else:
             raise Exception(f"Caracter inválido: {self.source[self.position]}")
+    
+        #print(f"DEBUG Tokenizer: Próximo token -> {self.next.type}, Valor -> {self.next.value}, Posição -> {self.position}")
+
+
 
 class Node(ABC):
     def __init__(self, value: any):
@@ -373,26 +441,31 @@ class If(Node):
         return None, None
 
 class While(Node):
-    def __init__(self, cond: Node, block:Node):
+    def __init__(self, cond: Node, block: Node):
         super().__init__('while')
         self.children.extend([cond, block])
 
     def Evaluate(self, symbol_table: SymbolTable):
+        print("DEBUG While: Iniciando avaliação do loop")
 
-        cond_value, cond_type = self.children[0].Evaluate(symbol_table)
-
-        while cond_value:
-            self.children[1].Evaluate(symbol_table)
+        while True:
             cond_value, cond_type = self.children[0].Evaluate(symbol_table)
-        return None, None
-    
-class Scanf(Node):
-    def __init__(self):
-        super().__init__('scanf')
 
-    def Evaluate(self, symbol_table: SymbolTable):
-        valor = int(input())
-        return (valor, "int")
+            # Certifique-se de que a condição seja um valor booleano
+            if cond_type != 'int':
+                raise Exception(f"Erro: Condição do while deve ser um inteiro, mas recebeu '{cond_type}'")
+            
+            if cond_value == 0:  # Condição falsa
+                print("DEBUG While: Condição avaliada como falsa. Encerrando loop.")
+                break
+            
+            print(f"DEBUG While: Condição avaliada como {cond_value} ({cond_type}). Executando bloco.")
+            self.children[1].Evaluate(symbol_table)
+
+        print("DEBUG While: Loop terminado")
+        return None, None
+
+    
     
 class RelationOp(Node):
     def __init__(self, value: str, esq: Node, dir: Node):
@@ -478,35 +551,13 @@ class Assignment(Node):
 
     def Evaluate(self, symbol_table: SymbolTable):    
         value, var_type = self.children[0].Evaluate(symbol_table)
-        if self.var_name not in list(symbol_table.symbols.keys()):
-            raise NameError(f"Variável '{self.var_name}' não declarada.")
-        symbol_table.assign(self.var_name, value, var_type)  # Armazenar o valor na tabela de símbolos
+        print(f"DEBUG Assignment: Atribuindo {value} (tipo: {var_type}) para {self.var_name}")
+        symbol_table.assign(self.var_name, value, var_type)
+        # Confirmar a atualização
+        novo_valor, _ = symbol_table.get(self.var_name)
+        print(f"DEBUG Assignment: Novo valor de {self.var_name} é {novo_valor}")
         return (value, var_type)
     
-class VarDec(Node):
-    def __init__(self, var_type: str, variaveis: List[str], atribuicoes: List[Node] = []):
-        super().__init__('VarDec')
-        self.var_type = var_type
-        self.variaveis = variaveis
-        self.atribuicoes = atribuicoes
-
-    def Evaluate(self, symbol_table: SymbolTable):
-        # Primeiramente, declara todas as variáveis com o tipo fornecido
-        for var_name in self.variaveis:
-            if var_name in symbol_table.symbols:
-                raise ValueError(f"A variável '{var_name}' já foi declarada.")
-            # Inicializa com None por padrão
-            symbol_table.set(var_name, None, self.var_type)
-
-        # Agora, faz as atribuições quando disponíveis
-        for i, var_name in enumerate(self.variaveis):
-            if i < len(self.atribuicoes):  # Verifica se existe uma atribuição correspondente
-                value, assigned_type = self.atribuicoes[i].Evaluate(symbol_table)
-                if assigned_type != self.var_type:
-                    raise TypeError(f"Tipo incompatível para '{var_name}'. Esperado: {self.var_type}.")
-                # Atualiza o valor na tabela de símbolos
-                #symbol_table.set(var_name, value, self.var_type)
-        return None, None
 
 class Identifier(Node):
     def __init__(self, value: str):
@@ -522,9 +573,8 @@ class Block(Node):
 
     def Evaluate(self, symbol_table: SymbolTable) -> None:
         for child in self.children:
-            result = child.Evaluate(symbol_table)
-            if isinstance(child, Return):
-                return result
+            child.Evaluate(symbol_table)
+
 
 class Printf(Node):
     def __init__(self, child: Node):
@@ -536,85 +586,19 @@ class Printf(Node):
         print(value)
         return None, None
     
-class FuncDec(Node):
-    def __init__(self, func_name: str, func_type: str, lista_var_dec_arg: List[Node], block: Node):
-        super().__init__(func_name)  # Chama o construtor da classe base para inicializar a lista `children`
-        self.func_name = func_name
-        self.func_type = func_type
-        # Adiciona os nós-filhos corretamente
-        if lista_var_dec_arg == []:
-            self.children.append([])
-        else:
-            self.children.append(lista_var_dec_arg)
-        self.children.append(block)
 
-    def Evaluate(self, symbol_table: SymbolTable):
-        # Define a função na tabela de símbolos com o tipo FUNCTION
-        symbol_table.set(self.func_name, self, 'FUNCTION')
-        FuncTable.set(self.func_name, self, 'FUNCTION')
-        return None
-
-
-class FuncCall(Node):
-    def __init__(self, func_name: str, argumentos: List[Node]):
-        super().__init__(func_name)  # Chama o construtor da classe base para inicializar `children`
-        self.func_name = func_name
-        self.children.extend(argumentos)  # Adiciona cada argumento individualmente
-
-    def Evaluate(self, symbol_table: SymbolTable):
-        # Recupera o nó da função a partir da tabela de símbolos
-        node_func = FuncTable.get(self.func_name)
-
-        # Cria uma tabela de símbolos local para a execução da função
-        local_symbol_table = SymbolTable()
-        lista_var_dec_args, block = node_func[0].children
-
-        # Verifica se o número de argumentos da chamada coincide com o número de parâmetros]
-
-        if len(lista_var_dec_args) != len(self.children):
-            raise Exception(f"Erro de sintaxe: número de argumentos diferente do número de parâmetros da função {self.func_name}!")
-
-        # Associa os argumentos passados aos parâmetros da função
-        for var_dec, arg_call in zip(lista_var_dec_args, self.children):
-            var_dec.Evaluate(local_symbol_table)  # Avalia a declaração do parâmetro
-            local_symbol_table.assign(var_dec.variaveis[0], arg_call.Evaluate(symbol_table)[0],var_dec.var_type)
-
-        result = block.Evaluate(local_symbol_table)
-        return result
-
-class Return(Node):
-    def __init__(self, value):
-        super().__init__("Return")
-        self.children.append(value)
-    def Evaluate(self, symbol_table):
-        return self.children[0].Evaluate(symbol_table)
-    
-class Program(Node):
-    def __init__(self, functions):
-        super().__init__('program')
-        self.children = functions
-    
-    def Evaluate(self, symbol_table):
-        main = False
-        for func in self.children:
-            if func.func_name == 'main':
-                main = True
-            func.Evaluate(symbol_table)
-        if main:
-            no_main = FuncCall('main', [])
-            return no_main.Evaluate(symbol_table)
-        else:
-            raise Exception ("é necessário uma função main")
         
 class CharacterNode(Node):
     def __init__(self, name: str, attributes: dict):
         super().__init__('CHARACTER')
         self.name = name
-        self.attributes = attributes
+        self.attributes = {k.lower(): v for k, v in attributes.items()}
 
     def Evaluate(self, symbol_table: SymbolTable):
         # Armazena o personagem na tabela de símbolos
         symbol_table.set(self.name, self.attributes, 'CHARACTER')
+        print(f"Personagem criado: {self.name}")
+        print(f"Atributos de {self.name}: {self.attributes}")
 
 class SpellNode(Node):
     def __init__(self, name: str, power: int, mana_cost: int, effect: str):
@@ -630,6 +614,11 @@ class SpellNode(Node):
             'mana_cost': self.mana_cost,
             'effect': self.effect
         }, 'SPELL')
+
+        print(f"Feitiço criado: {self.name}")
+        caracteristicas = f"Power: {self.power}, Mana Cost: {self.mana_cost}, Effect: {self.effect}"
+        print(f"Características de {self.name}: {caracteristicas}")
+
 
 class MissionNode(Node):
     def __init__(self, name: str, objective: str, participants: list, reward: list, location: str):
@@ -648,10 +637,95 @@ class MissionNode(Node):
             'location': self.location
         }, 'MISSION')
 
+        print(f"Missão criada: {self.name}")
+        caracteristicas = f"Objective: {self.objective}, Participants: {self.participants}, Reward: {self.reward}, Location: {self.location}"
+        print(f"Características de {self.name}: {caracteristicas}")
+
+class ListNode(Node):
+    def __init__(self, elements):
+        super().__init__('LIST')
+        self.children.extend(elements)
+
+    def Evaluate(self, symbol_table: SymbolTable):
+        return [child.Evaluate(symbol_table)[0] for child in self.children], "list"
+
+class IterateList(Node):
+    def __init__(self, iterator, iterable, block):
+        super().__init__('ITERATE_LIST')
+        self.iterator = iterator
+        self.iterable = iterable
+        self.children.append(block)
+
+    def Evaluate(self, symbol_table: SymbolTable):
+        iterable, _ = symbol_table.get(self.iterable)
+        for item in iterable:
+            symbol_table.set(self.iterator, item, "VALUE")
+            self.children[0].Evaluate(symbol_table)
+
+class AdvanceMission(Node):
+    def __init__(self, mission_name, next_step):
+        super().__init__('ADVANCE_MISSION')
+        self.mission_name = mission_name
+        self.next_step = next_step
+
+    def Evaluate(self, symbol_table: SymbolTable):
+        mission, _ = symbol_table.get(self.mission_name)
+        mission['objective'] = self.next_step
+        symbol_table.set(self.mission_name, mission, "MISSION")
+
+class CreateDynamic(Node):
+    def __init__(self, obj_type, name, block):
+        super().__init__('CREATE_DYNAMIC')
+        self.obj_type = obj_type
+        self.name = name
+        self.children.append(block)
+
+    def Evaluate(self, symbol_table: SymbolTable):
+        block_result = self.children[0].Evaluate(symbol_table)
+        symbol_table.set(self.name, block_result, self.obj_type)
+
+class CastSpellNode(Node):
+    def __init__(self, spell_name: str, caster: str, target: str):
+        super().__init__('CAST')
+        self.spell_name = spell_name
+        self.caster = caster
+        self.target = target
+
+    def Evaluate(self, symbol_table: SymbolTable):
+        # Recupera o feitiço da tabela de símbolos
+        spell, spell_type = symbol_table.get(self.spell_name)
+        if spell_type != 'SPELL':
+            raise Exception(f"'{self.spell_name}' não é um feitiço válido.")
+
+        # Recupera o lançador e o alvo da tabela de símbolos
+        caster, caster_type = symbol_table.get(self.caster)
+        target, target_type = symbol_table.get(self.target)
+
+        if caster_type != 'CHARACTER':
+            raise Exception(f"'{self.caster}' não é um personagem válido.")
+        if target_type != 'CHARACTER':
+            raise Exception(f"'{self.target}' não é um personagem válido.")
+
+        # Verifica se o lançador tem mana suficiente
+        if caster.get('mana', 0) < spell['mana_cost']:
+            raise Exception(f"'{self.caster}' não tem mana suficiente para lançar '{self.spell_name}'.")
+
+        # Consome a mana do lançador
+        caster['mana'] -= spell['mana_cost']
+
+        # Aplica o efeito no alvo (apenas exibe uma mensagem por enquanto)
+        print(f"{self.caster} lançou '{self.spell_name}' em {self.target}!")
+        print(f"Efeito: {spell['effect']}")
+        print(f"{self.target} sofreu {spell['power']} de dano!")
+        
+        # Atualiza a tabela de símbolos
+        symbol_table.set(self.caster, caster, 'CHARACTER')
+        symbol_table.set(self.target, target, 'CHARACTER')
 
 class Parser:
     @staticmethod
     def parseFactor(tokenizer: Tokenizer):
+
         if tokenizer.next.type == 'OPPAR':
             tokenizer.selectNext()
             result = Parser.parseRelationalExpression(tokenizer)
@@ -672,21 +746,21 @@ class Parser:
             return result
 
         elif tokenizer.next.type == 'IDENT':
-            id_name = tokenizer.next.value
-            identifier = Identifier(id_name)
+            # Inicia um identificador simples
+            var_name = tokenizer.next.value
             tokenizer.selectNext()
-            if tokenizer.next.type == "OPPAR":
+
+            # Permite composição de identificadores (IDENT.DOT.IDENT)
+            while tokenizer.next.type == 'DOT':
                 tokenizer.selectNext()
-                arguments = []
-                while tokenizer.next.type != 'CLPAR':
-                    arguments.append(Parser.parseRelationalExpression(tokenizer))
-                    if tokenizer.next.type == 'COMMA':
-                        tokenizer.selectNext()
-                if tokenizer.next.type != 'CLPAR':
-                    raise Exception("Esperado ')' ao final da chamada de função")
-                tokenizer.selectNext()
-                return FuncCall(id_name, arguments)
-            return identifier
+                if tokenizer.next.type == 'IDENT':
+                    prop_name = tokenizer.next.value
+                    var_name = f"{var_name}.{prop_name}"  # Concatena como identificador composto
+                    tokenizer.selectNext()
+                else:
+                    raise Exception("Esperado identificador após '.'")
+
+            return Identifier(var_name)  # Retorna o identificador completo
 
         elif tokenizer.next.type == 'PLUS':
             tokenizer.selectNext()
@@ -700,17 +774,21 @@ class Parser:
             tokenizer.selectNext()
             return UnOp('!', Parser.parseFactor(tokenizer))
         
-        elif tokenizer.next.type == 'SCANF':
+        #lista
+        #lista
+        elif tokenizer.next.type == 'OPEN_BRACKET':
             tokenizer.selectNext()
-            if tokenizer.next.type == 'OPPAR':
-                tokenizer.selectNext()
-                if tokenizer.next.type == 'CLPAR':
+            elements = []
+            while tokenizer.next.type != 'CLOSE_BRACKET':
+                elements.append(Parser.parseRelationalExpression(tokenizer))
+                if tokenizer.next.type == 'COMMA':
                     tokenizer.selectNext()
-                    return Scanf()
-                else:
-                    raise Exception("Esperado ')' após o nome da variável em scanf")
-            else:
-                raise Exception("Esperado um '(' após 'scanf'")
+            if tokenizer.next.type != 'CLOSE_BRACKET':
+                raise Exception("Esperado ']' para fechar a lista.")
+            tokenizer.selectNext()
+            return ListNode(elements)
+
+
 
     @staticmethod
     def parseTerm(tokenizer: Tokenizer):
@@ -764,6 +842,7 @@ class Parser:
 
     @staticmethod
     def parseStatement(tokenizer: Tokenizer):
+        print(f"parseStatement: token atual -> {tokenizer.next.type}, valor -> {tokenizer.next.value}")
         if tokenizer.next.type in ['INTEIRO', 'STR']:
             if tokenizer.next.type == 'INTEIRO':
                 tipo = "int"
@@ -796,142 +875,111 @@ class Parser:
             return VarDec(tipo, variaveis, atribuicoes)
         
         elif tokenizer.next.type == 'IDENT':
-            var_name = tokenizer.next.value
+            var_name = tokenizer.next.value  # Obtém o identificador inicial
             tokenizer.selectNext()
+
+            # Verifica identificadores compostos (com DOT)
+            while tokenizer.next.type == 'DOT':
+                tokenizer.selectNext()
+                if tokenizer.next.type == 'IDENT':
+                    var_name += f".{tokenizer.next.value}"  # Concatena o nome completo
+                    tokenizer.selectNext()
+                else:
+                    raise Exception("Esperado identificador após '.'")
+
+            # Verifica se é uma atribuição
             if tokenizer.next.type == 'EQUAL':
-                tokenizer.selectNext()
-                expr = Parser.parseRelationalExpression(tokenizer)
+                print(f"DEBUG parseStatement: Criando nó Assignment para {var_name}")
+                tokenizer.selectNext()  # Consome '='
+                expr = Parser.parseRelationalExpression(tokenizer)  # Processa o lado direito
                 if tokenizer.next.type == 'SEMICOLON':
-                    tokenizer.selectNext()
-                    return Assignment(var_name, expr)
-            elif tokenizer.next.type == 'OPPAR':
-                args = []
-                tokenizer.selectNext()
-                while tokenizer.next.type != 'CLPAR':
-                    args.append(Parser.parseRelationalExpression(tokenizer))
-                    if tokenizer.next.type == 'COMMA':
-                        tokenizer.selectNext()
-                
-                if tokenizer.next.type != 'CLPAR':
-                    raise Exception("Esperado ')' ao final da chamada de função!")
-                tokenizer.selectNext()
-                if tokenizer.next.type == 'SEMICOLON':
-                    tokenizer.selectNext()
-                    return FuncCall(var_name, args)
+                    tokenizer.selectNext()  # Consome ';'
+                    return Assignment(var_name, expr)  # Retorna nó de atribuição
+                else:
+                    raise Exception("Esperado ';' após atribuição.")
+            else:
+                raise Exception(f"Instrução inválida no token: {tokenizer.next.type}, valor: {tokenizer.next.value}")
 
-        elif tokenizer.next.type == 'PRINTF':
+                    
+
+        elif tokenizer.next.type == 'ENCHANTED_IF':
             tokenizer.selectNext()
+            condition = Parser.parseRelationalExpression(tokenizer)  # Avaliação da condição lógica
+            
+            if tokenizer.next.type == 'OPBRACE':  # Espera abertura do bloco "{"
+                tokenizer.selectNext()
+                if_block = Parser.parseBlock(tokenizer)  # Processa o bloco associado ao "if"
+                print(f"DEBUG ENCHANTED_IF: Bloco IF contém {len(if_block.children)} instruções")
+            else:
+                raise Exception("Esperado '{' após 'ENCHANTED_IF' para abrir o bloco.")
 
+            else_block = None  # Bloco "else" é opcional
+            tokenizer.selectNext()
+            
+            if tokenizer.next.type == 'OTHER_PATH':  # Verifica se há um bloco "else"
+                print("DEBUG: Encontrado OTHER_PATH")
+                tokenizer.selectNext()
+                print("DEBUG: Encontrado OTHER_PATH")
+                if tokenizer.next.type == 'OPBRACE':  # Espera abertura do bloco "{"
+                    
+                    tokenizer.selectNext()
+                    else_block = Parser.parseBlock(tokenizer)  # Processa o bloco associado ao "else"
+                    print(f"DEBUG OTHER_PATH: Bloco ELSE contém {len(else_block.children)} instruções")
+                else:
+                    raise Exception("Esperado '{' após 'OTHER_PATH' para abrir o bloco.")
+
+            return If(condition, if_block, else_block)
+
+        elif tokenizer.next.type == "LOG":
+            tokenizer.selectNext()
             if tokenizer.next.type == 'OPPAR':
                 tokenizer.selectNext()
-                expr = Parser.parseRelationalExpression(tokenizer)
-
+                message = Parser.parseRelationalExpression(tokenizer)
                 if tokenizer.next.type == 'CLPAR':
                     tokenizer.selectNext()
-
                     if tokenizer.next.type == 'SEMICOLON':
                         tokenizer.selectNext()
-                        return Printf(expr)
+                        return Printf(message)
                     else:
-                        raise Exception("Esperado ';' após a chamada de printf")
+                        raise Exception("Esperado ';' após LOG.")
                 else:
-                    raise Exception("Esperado ')' após a expressão no printf")
+                    raise Exception("Esperado ')' após argumento de LOG.")
             else:
-                raise Exception("Esperado '(' após 'printf'")
+                raise Exception("Esperado '(' após LOG.")
+    
             
-        elif tokenizer.next.type == 'IF':
-            tokenizer.selectNext()
-            if tokenizer.next.type == 'OPPAR':
-                tokenizer.selectNext()
-                cond = Parser.parseRelationalExpression(tokenizer)
-                if tokenizer.next.type == 'CLPAR':
-                    tokenizer.selectNext()
-                    if tokenizer.next.type == 'OPBRACE':
-                        if_block = Parser.parseBlock(tokenizer)
+        elif tokenizer.next.type == 'WHILE_THE_MOON_SHINES':
+            tokenizer.selectNext()  # Consome o token 'WHILE_THE_MOON_SHINES'
+            if tokenizer.next.type == 'OPPAR':  # Verifica '('
+                tokenizer.selectNext()  # Consome '('
+                condition = Parser.parseRelationalExpression(tokenizer)  # Processa a condição
+                if tokenizer.next.type == 'CLPAR':  # Verifica ')'
+                    tokenizer.selectNext()  # Consome ')'
+                    if tokenizer.next.type == 'OPBRACE':  # Verifica '{'
+                        tokenizer.selectNext()  # Consome '{'
+                        block = Parser.parseBlock(tokenizer)  # Processa o bloco do loop
+                        return While(condition, block)
                     else:
-                        if_block = Parser.parseStatement(tokenizer)
+                        raise Exception("Esperado '{' após ')' em WHILE_THE_MOON_SHINES")
+                else:
+                    raise Exception("Esperado ')' após a condição em WHILE_THE_MOON_SHINES")
+            else:
+                raise Exception("Esperado '(' após WHILE_THE_MOON_SHINES")
 
-                    else_block = None
-                    if tokenizer.next.type == 'ELSE':
-                        tokenizer.selectNext()
-                        if tokenizer.next.type == 'OPBRACE':
-                            else_block = Parser.parseBlock(tokenizer)
-                        else:
-                            else_block = Parser.parseStatement(tokenizer)
-                    return If(cond, if_block, else_block)
-                else:
-                    raise Exception("Esperado um ')' após a expressão condicional")  
-            else:
-                raise Exception("Esperado um '(' após 'if'")    
             
-        elif tokenizer.next.type == 'WHILE':
-            tokenizer.selectNext()
-            if tokenizer.next.type == 'OPPAR':
-                tokenizer.selectNext()
-                cond = Parser.parseRelationalExpression(tokenizer)
-                if tokenizer.next.type == 'CLPAR':
-                    tokenizer.selectNext()
-                    if tokenizer.next.type == 'OPBRACE':
-                        block = Parser.parseBlock(tokenizer)
-                    else:
-                        block = Parser.parseStatement(tokenizer)
-                    return While(cond, block)
-                else:
-                    raise Exception("Esperado um ')' após a expressão do while")
-            else:
-                raise Exception("Esperado um '(' após while")
         
-        elif tokenizer.next.type == 'RETURN':
-            tokenizer.selectNext()
-            expr = None
-            if tokenizer.next.type == 'OPPAR':
-                tokenizer.selectNext()
-                expr = Parser.parseRelationalExpression(tokenizer)
-                if tokenizer.next.type == 'CLPAR':
-                    tokenizer.selectNext()
-                    return Return(expr)
-                else: 
-                    raise Exception("Esperado um ')' após a expressão do return")
-            else:
-                raise Exception("Esperado um '(' após return")
             
         elif tokenizer.next.type == 'CREATE':
             tokenizer.selectNext()
-            if tokenizer.next.type == 'CHARACTER':
-                tokenizer.selectNext()
-                if tokenizer.next.type == 'STRING':
-                    name = tokenizer.next.value
-                    tokenizer.selectNext()
-                    if tokenizer.next.type == 'OPBRACE':
-                        tokenizer.selectNext()
-                        if tokenizer.next.type == 'ATRIBUTOS':
-                            tokenizer.selectNext()
-                            if tokenizer.next.type == 'EQUAL':
-                                tokenizer.selectNext()
-                                attributes = {}
-                                if tokenizer.next.type == 'OPBRACE':
-                                    tokenizer.selectNext()
-                                    while tokenizer.next.type != 'CLBRACE':
-                                        attr_name = tokenizer.next.type
-                                        tokenizer.selectNext()
-                                        if tokenizer.next.type == 'EQUAL':
-                                            tokenizer.selectNext()
-                                            if tokenizer.next.type == 'INT':
-                                                attributes[attr_name] = tokenizer.next.value
-                                                tokenizer.selectNext()
-                                            if tokenizer.next.type == 'SEMICOLON':
-                                                tokenizer.selectNext()
+            if tokenizer.next.type == 'CHARACTER':  # Verifica se é a palavra 'character'
+                return Parser.parseCharacter(tokenizer)
+            elif tokenizer.next.type == 'SPELL':
+                return Parser.parseSpell(tokenizer)
+            elif tokenizer.next.type == 'MISSION':
+                return Parser.parseMission(tokenizer)
+            else:
+                raise Exception("Esperado 'character' ou spell após 'CREATE'")
 
-                                        else:
-                                            raise Exception("Esperado '=' nos atributos")
-                                    tokenizer.selectNext()
-                                    return CharacterNode(name, attributes)
-                                else:
-                                    raise Exception("Esperado '{' no bloco de atributos")
-                        else:
-                            raise Exception("Esperado 'attributes'")
-                else:
-                    raise Exception("Esperado nome do personagem")
             
 
         elif tokenizer.next.type == 'SEMICOLON':
@@ -945,136 +993,335 @@ class Parser:
         elif tokenizer.next.type == 'OPBRACE':  # Início de um bloco aninhado
             return Parser.parseBlock(tokenizer)  # Chama parseBlock diretamente
 
-        else:
-            raise Exception("Instrução inválida")
-
-
-    @staticmethod
-    def parseBlock(tokenizer: Tokenizer):
-        block = Block()  # Cria um novo nó de bloco para armazenar as instruções
-
-        if tokenizer.next.type == 'OPBRACE':  # Verifica se há uma abertura de bloco '{'
+        elif tokenizer.next.type == 'CREATE_DYNAMIC':
             tokenizer.selectNext()
-            while tokenizer.next.type != 'CLBRACE':  # Enquanto não encontrar o fechamento '}'
-                block.children.append(Parser.parseStatement(tokenizer))  # Adiciona instruções ao bloco
-                
-                # Se atingir EOF sem encontrar o '}', lança uma exceção
-                if tokenizer.next.type == 'EOF':
-                    raise Exception("Erro de sintaxe: Esperado '}' para fechar o bloco")
-
-            tokenizer.selectNext()  # Consome o token de fechamento '}'
-        else:
-            raise Exception("Erro de sintaxe: Esperado '{' no início do bloco")
-
-        return block
-    
-    @staticmethod
-    def parseFunction(tokenizer: Tokenizer):
-        # Suporte para declarar funções do tipo 'int' ou 'void'
-        if tokenizer.next.type not in ['INTEIRO', 'VOID']:
-            raise Exception("Esperado 'int' ou 'void' para declaração de função")
-        
-        if tokenizer.next.type == 'INTEIRO':
-            func_type = "int"
-        else:
-            func_type = "void"
-        
-        tokenizer.selectNext()
-
-        if tokenizer.next.type != 'IDENT':
-            raise Exception("Esperado o nome da função")
-        
-        func_name = tokenizer.next.value
-        tokenizer.selectNext()
-
-        if tokenizer.next.type != 'OPPAR':
-            raise Exception("Esperado '(' após o nome da função")
-        
-        tokenizer.selectNext()
-        params = []
-        if tokenizer.next.type != 'CLPAR':
-            # Parse de parâmetros de função
-            while True:
-                if tokenizer.next.type == 'INTEIRO':
-                    param_type = 'int'
-                elif tokenizer.next.type == 'STR':
-                    param_type = 'str'
-                else:
-                    raise Exception("Tipo de parâmetro inválido")
-
-                tokenizer.selectNext()
-
-                if tokenizer.next.type != 'IDENT':
-                    raise Exception("Esperado nome do parâmetro")
-                
-                param_name = tokenizer.next.value
-                node_param = VarDec(param_type, [param_name])
-                params.append(node_param)
-                tokenizer.selectNext()
-
-                if tokenizer.next.type == 'COMMA':
-                    tokenizer.selectNext()
-                else:
-                    break
-        
-        if tokenizer.next.type != 'CLPAR':
-            raise Exception("Esperado ')' após a lista de parâmetros")
-        
-        tokenizer.selectNext()
-
-        if tokenizer.next.type != 'OPBRACE':
-            raise Exception("Esperado '{' para início do corpo da função")
-        
-        func_body = Parser.parseBlock(tokenizer)
-        return FuncDec(func_name, func_type, params, func_body)
-    
-    @staticmethod
-    def parseProgram(tokenizer: Tokenizer):
-        program = []
-        while tokenizer.next.type != 'EOF':
-            program.append(Parser.parseFunction(tokenizer))
-        return Program(program)
-    
-    @staticmethod
-    def parseCharacter(tokenizer: Tokenizer):
-        if tokenizer.next.type == 'CREATE':
-            tokenizer.selectNext()
-            if tokenizer.next.type == 'CHARACTER':
+            if tokenizer.next.type in ['CHARACTER', 'SPELL']:
+                obj_type = tokenizer.next.type.lower()
                 tokenizer.selectNext()
                 if tokenizer.next.type == 'STRING':
                     name = tokenizer.next.value
                     tokenizer.selectNext()
-                    if tokenizer.next.type == 'OPBRACE':
-                        tokenizer.selectNext()
-                        if tokenizer.next.type == 'ATRIBUTOS':
-                            tokenizer.selectNext()
-                            if tokenizer.next.type == 'EQUAL':
-                                tokenizer.selectNext()
-                                attributes = {}
-                                if tokenizer.next.type == 'OPBRACE':
-                                    tokenizer.selectNext()
-                                    while tokenizer.next.type != 'CLBRACE':
-                                        attr_name = tokenizer.next.type
-                                        tokenizer.selectNext()
-                                        if tokenizer.next.type == 'EQUAL':
-                                            tokenizer.selectNext()
-                                            if tokenizer.next.type == 'INT':
-                                                attributes[attr_name] = tokenizer.next.value
-                                                tokenizer.selectNext()
-                                            if tokenizer.next.type == 'SEMICOLON':
-                                                tokenizer.selectNext()
-                                        else:
-                                            raise Exception("Expected '=' in attributes")
-                                    tokenizer.selectNext()
-                                else:
-                                    raise Exception("Expected '{' in attributes block")
-                        else:
-                            raise Exception("Expected 'attributes'")
+                    block = Parser.parseBlock(tokenizer)
+                    return CreateDynamic(obj_type, name, block)
+
+        elif tokenizer.next.type == 'MISSION_STEP':
+            tokenizer.selectNext()
+            mission_name = tokenizer.next.value
+            tokenizer.selectNext()
+            if tokenizer.next.type == 'TO':
+                tokenizer.selectNext()
+                next_step = tokenizer.next.value
+                tokenizer.selectNext()
+                if tokenizer.next.type == 'SEMICOLON':
+                    tokenizer.selectNext()
+                    return AdvanceMission(mission_name, next_step)
                 else:
-                    raise Exception("Expected character name")
+                    raise Exception("Esperado ';' após 'TO'")
+                
+        elif tokenizer.next.type == 'CAST':
+            tokenizer.selectNext()  # Consome "CAST"
+            if tokenizer.next.type != 'SPELL':
+                raise Exception("Esperado 'SPELL' após 'CAST'.")
+            tokenizer.selectNext()  # Consome "SPELL"
+
+            if tokenizer.next.type != 'STRING':
+                raise Exception("Esperado o nome do feitiço.")
+            spell_name = tokenizer.next.value
+            tokenizer.selectNext()  # Consome o nome do feitiço
+
+            if tokenizer.next.type != 'BY':
+                raise Exception("Esperado 'BY' após o nome do feitiço.")
+            tokenizer.selectNext()  # Consome "BY"
+
+            if tokenizer.next.type != 'STRING':
+                raise Exception("Esperado o nome do lançador.")
+            caster = tokenizer.next.value
+            tokenizer.selectNext()  # Consome o nome do lançador
+
+            if tokenizer.next.type != 'ON':
+                raise Exception("Esperado 'ON' após o lançador.")
+            tokenizer.selectNext()  # Consome "ON"
+
+            if tokenizer.next.type != 'STRING':
+                raise Exception("Esperado o nome do alvo.")
+            target = tokenizer.next.value
+            tokenizer.selectNext()  # Consome o nome do alvo
+
+            if tokenizer.next.type != 'SEMICOLON':
+                raise Exception("Esperado ';' após o comando 'CAST'.")
+            tokenizer.selectNext()  # Consome ";"
+
+       
+            return CastSpellNode(spell_name, caster, target)
+        
+        if tokenizer.next.type == 'CLBRACE':
+            print("DEBUG: Encontrado CLBRACE. Finalizando bloco.")
+            tokenizer.selectNext() 
+            return NoOp()
+        
         else:
-            raise Exception("Expected 'CREATE'")
-        return CharacterNode(name, attributes)
+            raise Exception(f"Instrução inválida no token: {tokenizer.next.type}, valor: {tokenizer.next.value}")
+
+
+    @staticmethod
+    def parseCharacter(tokenizer: Tokenizer):
+        tokenizer.selectNext()  # Já sabemos que é 'PERSONAGEM'
+        if tokenizer.next.type == 'STRING':  # Nome do personagem
+            name = tokenizer.next.value
+            tokenizer.selectNext()
+            if tokenizer.next.type == 'OPBRACE':  # Abre o bloco '{'
+                tokenizer.selectNext()
+                if tokenizer.next.type == 'ATTRIBUTES':  # Verifica se é 'attributes'
+                    tokenizer.selectNext()
+                    if tokenizer.next.type == 'EQUAL':
+                        tokenizer.selectNext()
+                        attributes = {}
+                        if tokenizer.next.type == 'OPBRACE':  # Abre os atributos '{'
+                            tokenizer.selectNext()
+                            while tokenizer.next.type != 'CLBRACE':  # Até fechar '}'
+                                if tokenizer.next.type == 'IDENT':  # Nome do atributo
+                                    attr_name = tokenizer.next.value  # Corrige aqui para usar o valor
+                                    tokenizer.selectNext()
+                                if tokenizer.next.type == 'EQUAL':
+                                    tokenizer.selectNext()
+                                    if tokenizer.next.type == 'INT':  # Valor do atributo
+                                        attributes[attr_name] = tokenizer.next.value
+                                        tokenizer.selectNext()
+                                    elif tokenizer.next.type == 'OPEN_BRACKET':  # Lista
+                                        attributes[attr_name] = Parser.parseFactor(tokenizer).Evaluate(SymbolTable())[0]
+
+                                    else:
+                                        raise Exception("Esperado um valor inteiro ou lista para o atributo")
+                                    if tokenizer.next.type == 'SEMICOLON':  # Finaliza o atributo
+                                        tokenizer.selectNext()
+                                    else:
+                                        raise Exception("Esperado ';' após o valor do atributo")
+                                else:
+                                    raise Exception("Esperado '=' após o nome do atributo")
+                            tokenizer.selectNext()  # Fecha os atributos '}'
+                            if tokenizer.next.type == 'CLBRACE':  # Fecha o bloco 'character'
+                                tokenizer.selectNext()
+                                return CharacterNode(name, attributes)
+                            else:
+                                raise Exception("Esperado '}' para fechar o bloco do personagem")
+                        else:
+                            raise Exception("Esperado '{' para abrir os atributos")
+                    else:
+                        raise Exception("Esperado '=' após 'attributes'")
+                else:
+                    raise Exception("Esperado 'attributes' após '{'")
+            else:
+                raise Exception("Esperado '{' após o nome do personagem")
+        else:
+            raise Exception("Esperado um nome para o personagem")
+
+    @staticmethod
+    def parseSpell(tokenizer: Tokenizer):
+        
+        if tokenizer.next.type != 'SPELL':
+            raise Exception("Esperado 'spell' após 'CREATE'")
+        
+        tokenizer.selectNext()  # Consome "spell"
+        if tokenizer.next.type != 'STRING':
+            raise Exception("Esperado um nome para o feitiço")
+        
+        name = tokenizer.next.value
+        tokenizer.selectNext()  # Consome o nome
+        
+        if tokenizer.next.type != 'OPBRACE':
+            raise Exception("Esperado '{' após o nome do feitiço")
+        tokenizer.selectNext()  # Consome '{'
+
+        attributes = {}
+        for attr in ['power', 'mana_cost', 'effect']:
+            if tokenizer.next.type != 'IDENT' or tokenizer.next.value != attr:
+                raise Exception(f"Esperado '{attr}' no feitiço")
+            tokenizer.selectNext()  # Consome a chave
+
+            if tokenizer.next.type != 'EQUAL':
+                raise Exception(f"Esperado '=' após '{attr}'")
+            tokenizer.selectNext()  # Consome '='
+
+            if attr in ['power', 'mana_cost'] and tokenizer.next.type == 'INT':
+                attributes[attr] = tokenizer.next.value
+            elif attr == 'effect' and tokenizer.next.type == 'STRING':
+                attributes[attr] = tokenizer.next.value
+            else:
+                raise Exception(f"Valor inválido para '{attr}'")
+            
+            tokenizer.selectNext()  # Consome o valor
+
+            if tokenizer.next.type != 'SEMICOLON':
+                raise Exception(f"Esperado ';' após '{attr}'")
+            tokenizer.selectNext()  # Consome ';'
+
+        if tokenizer.next.type != 'CLBRACE':
+            raise Exception("Esperado '}' para fechar o bloco do feitiço")
+        tokenizer.selectNext()  # Consome '}'
+
+        print(f"Feitiço criado: {name}, atributos: {attributes}")
+
+        return SpellNode(name, attributes['power'], attributes['mana_cost'], attributes['effect'])
+
+
+    @staticmethod
+    def parseMission(tokenizer: Tokenizer):
+       
+        if tokenizer.next.type != 'MISSION':
+            raise Exception("Esperado 'mission' após 'CREATE'")
+        
+        tokenizer.selectNext()  # Consome "mission"
+        if tokenizer.next.type != 'STRING':
+            raise Exception("Esperado um nome para a missão")
+        
+        name = tokenizer.next.value
+        tokenizer.selectNext()  # Consome o nome da missão
+        
+        if tokenizer.next.type != 'OPBRACE':
+            raise Exception("Esperado '{' após o nome da missão")
+        tokenizer.selectNext()  # Consome '{'
+
+        # Inicializando os atributos da missão
+        attributes = {}
+
+        # Objetivo
+        if tokenizer.next.type != 'OBJECTIVE':
+            raise Exception("Esperado 'objective' na missão")
+        tokenizer.selectNext()  # Consome "objective"
+
+        if tokenizer.next.type != 'EQUAL':
+            raise Exception("Esperado '=' após 'objective'")
+        tokenizer.selectNext()  # Consome "="
+
+        if tokenizer.next.type != 'STRING':
+            raise Exception("Esperado uma string para 'objective'")
+        attributes['objective'] = tokenizer.next.value
+        tokenizer.selectNext()  # Consome o valor de 'objective'
+
+        if tokenizer.next.type != 'SEMICOLON':
+            raise Exception("Esperado ';' após 'objective'")
+        tokenizer.selectNext()  # Consome ";"
+
+        # Participantes
+        if tokenizer.next.type != 'PARTICIPANTS':
+            raise Exception("Esperado 'participants' na missão")
+        tokenizer.selectNext()  # Consome "participants"
+
+        if tokenizer.next.type != 'EQUAL':
+            raise Exception("Esperado '=' após 'participants'")
+        tokenizer.selectNext()  # Consome "="
+
+        participants = Parser.parseFactor(tokenizer)  # Participantes são uma lista
+        attributes['participants'], _ = participants.Evaluate(SymbolTable())
+
+        if tokenizer.next.type != 'SEMICOLON':
+            raise Exception("Esperado ';' após 'participants'")
+        tokenizer.selectNext()  # Consome ";"
+
+        # Recompensa
+        if tokenizer.next.type != 'REWARD':
+            raise Exception("Esperado 'reward' na missão")
+        tokenizer.selectNext()  # Consome "reward"
+
+        if tokenizer.next.type != 'EQUAL':
+            raise Exception("Esperado '=' após 'reward'")
+        tokenizer.selectNext()  # Consome "="
+
+        reward = Parser.parseFactor(tokenizer)  # Recompensa é uma lista
+        attributes['reward'], _ = reward.Evaluate(SymbolTable())
+
+        if tokenizer.next.type != 'SEMICOLON':
+            raise Exception("Esperado ';' após 'reward'")
+        tokenizer.selectNext()  # Consome ";"
+
+        # Localização
+        if tokenizer.next.type != 'LOCATION':
+            raise Exception("Esperado 'location' na missão")
+        tokenizer.selectNext()  # Consome "location"
+
+        if tokenizer.next.type != 'EQUAL':
+            raise Exception("Esperado '=' após 'location'")
+        tokenizer.selectNext()  # Consome "="
+
+        if tokenizer.next.type != 'STRING':
+            raise Exception("Esperado uma string para 'location'")
+        attributes['location'] = tokenizer.next.value
+        tokenizer.selectNext()  # Consome o valor de 'location'
+
+        if tokenizer.next.type != 'SEMICOLON':
+            raise Exception("Esperado ';' após 'location'")
+        tokenizer.selectNext()  # Consome ";"
+
+        if tokenizer.next.type != 'CLBRACE':
+            raise Exception("Esperado '}' ao final da missão")
+        tokenizer.selectNext()  # Consome '}'
+
+        return MissionNode(name, attributes['objective'], attributes['participants'], attributes['reward'], attributes['location'])
+
+
+    @staticmethod
+    def parseBlock(tokenizer: Tokenizer):
+        block = Block()  # Cria um novo bloco
+        
+        if tokenizer.next.type == 'OPBRACE':  # Verifica abertura de bloco
+            tokenizer.selectNext()  # Consome '{'
+            while tokenizer.next.type != 'CLBRACE':  # Enquanto não encontrar '}'
+                if tokenizer.next.type == 'EOF':
+                    raise Exception("Erro de sintaxe: Esperado '}' para fechar o bloco, mas EOF encontrado")
+                block.children.append(Parser.parseStatement(tokenizer))  # Adiciona instruções
+            tokenizer.selectNext()  # Consome '}'
+        else:
+            # Permite um único comando sem bloco
+            block.children.append(Parser.parseStatement(tokenizer))
+
+        print(f"DEBUG parseBlock: Bloco contém {len(block.children)} instruções")
+        return block
+
+    
+    @staticmethod
+    def parseProgram(tokenizer: Tokenizer):
+        block = Block()  # Bloco principal do programa
+        while tokenizer.next.type != 'EOF':
+            block.children.append(Parser.parseStatement(tokenizer))
+        return block
+
+    
+    
+    class CreateDynamic(Node):
+        def __init__(self, obj_type: str, name: str, block: Node):
+            super().__init__('CREATE_DYNAMIC')
+            self.obj_type = obj_type
+            self.name = name
+            self.children.append(block)
+
+        def Evaluate(self, symbol_table: SymbolTable):
+            block_result = self.children[0].Evaluate(symbol_table)
+            symbol_table.set(self.name, block_result, self.obj_type)
+
+    class IterateList(Node):
+        def __init__(self, iterator: str, iterable: str, block: Node):
+            super().__init__('ITERATE_LIST')
+            self.iterator = iterator
+            self.iterable = iterable
+            self.children.append(block)
+
+        def Evaluate(self, symbol_table: SymbolTable):
+            iterable, _ = symbol_table.get(self.iterable)
+            for item in iterable:
+                symbol_table.set(self.iterator, item, "VALUE")
+                self.children[0].Evaluate(symbol_table)
+
+    class AdvanceMission(Node):
+        def __init__(self, mission_name: str, next_step: str):
+            super().__init__('ADVANCE_MISSION')
+            self.mission_name = mission_name
+            self.next_step = next_step
+
+        def Evaluate(self, symbol_table: SymbolTable):
+            mission, _ = symbol_table.get(self.mission_name)
+            mission['objective'] = self.next_step
+            symbol_table.set(self.mission_name, mission, "MISSION")
+
 
 
     @staticmethod
@@ -1102,3 +1349,4 @@ if __name__ == '__main__':
 
     except FileNotFoundError:
         print("Arquivo não encontrado")
+

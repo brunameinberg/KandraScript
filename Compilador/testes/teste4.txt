@@ -1,0 +1,21 @@
+CREATE spell "Fireball" {
+    power = 50;
+    mana_cost = 30;
+    effect = "Explosive damage";
+}
+
+CREATE character "Mage" {
+    attributes = {
+        strength = 10;
+        mana = 100;
+    }
+}
+
+CREATE character "Goblin" {
+    attributes = {
+        strength = 15;
+        mana = 0;
+    }
+}
+
+CAST spell "Fireball" BY "Mage" ON "Goblin";
